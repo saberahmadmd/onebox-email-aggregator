@@ -1,0 +1,133 @@
+const express = require('express');
+const router = express.Router();
+
+// Simple test endpoint
+router.get('/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Accounts route is working',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Add IMAP account with enhanced error handling
+router.post('/', async (req, res) => {
+  try {
+    console.log('📨 Received account add request:', {
+      email: req.body.email,
+      host: req.body.host,
+      hasPassword: !!req.body.password
+    });
+
+    const { email, password, host, port, tls } = req.body;
+
+    // Validate required fields
+    if (!email || !password || !host) {
+      console.log('❌ Missing required fields');
+      return res.status(400).json({
+        success: false,
+        error: 'Email, password, and host are required'
+      });
+    }
+
+    console.log(`🔄 Processing account for: ${email}`);
+
+    // Import accountManager inside function to avoid circular dependencies
+    const accountManager = require('../services/accountManager');
+
+    const account = await accountManager.addAccount({
+      email,
+      password,
+      host,
+      port: port || 993,
+      tls: tls !== false
+    });
+
+    console.log(`✅ Account added successfully: ${email}`);
+
+    res.json({
+      success: true,
+      data: account,
+      message: 'Account added successfully'
+    });
+
+  } catch (error) {
+    console.error('💥 Add account error:', error.message);
+    console.error('Error stack:', error.stack);
+
+    // Provide user-friendly error messages
+    let errorMessage = error.message;
+
+    if (error.message.includes('Invalid credentials') || error.message.includes('Authentication failed')) {
+      errorMessage = 'Invalid email or password. For Gmail, use an App Password instead of your regular password.';
+    } else if (error.message.includes('ECONNREFUSED') || error.message.includes('ENOTFOUND')) {
+      errorMessage = `Cannot connect to IMAP server: ${req.body.host}. Please check the server address.`;
+    } else if (error.message.includes('Timed out')) {
+      errorMessage = 'Connection timed out. Please check your network connection and try again.';
+    } else if (error.message.includes('self signed certificate')) {
+      errorMessage = 'SSL certificate error. Try disabling TLS or check server certificate.';
+    }
+
+    res.status(500).json({
+      success: false,
+      error: errorMessage,
+      // Include original error in development for debugging
+      ...(process.env.NODE_ENV === 'development' && {
+        originalError: error.message,
+        stack: error.stack
+      })
+    });
+  }
+});
+
+// Get all accounts
+router.get('/', (req, res) => {
+  try {
+    console.log('📊 Getting all accounts');
+    const accountManager = require('../services/accountManager');
+    const accounts = accountManager.getAccounts();
+
+    res.json({
+      success: true,
+      data: accounts,
+      count: accounts.length
+    });
+  } catch (error) {
+    console.error('Get accounts error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get accounts'
+    });
+  }
+});
+
+// Remove account
+router.delete('/:email', (req, res) => {
+  try {
+    const { email } = req.params;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email parameter is required'
+      });
+    }
+
+    console.log(`🗑️ Removing account: ${email}`);
+    const accountManager = require('../services/accountManager');
+    accountManager.removeAccount(email);
+
+    res.json({
+      success: true,
+      message: 'Account removed successfully'
+    });
+  } catch (error) {
+    console.error('Remove account error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+module.exports = router;
