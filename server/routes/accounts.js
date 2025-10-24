@@ -13,6 +13,7 @@ router.get('/test', (req, res) => {
 // Add IMAP account with enhanced error handling
 router.post('/', async (req, res) => {
   try {
+    req.setTimeout(120000);
     console.log('📨 Received account add request:', {
       email: req.body.email,
       host: req.body.host,
