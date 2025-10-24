@@ -67,7 +67,21 @@ const AccountManager = ({ onAccountChange }) => {
         });
         setShowForm(false);
         setShowPassword(false);
+        alert('⏳ Account setup started. This may take 1-2 minutes...');
+      
+      // Poll for account status
+      const checkInterval = setInterval(async () => {
         await loadAccounts();
+        const newAccount = accounts.find(a => a.email === formData.email);
+        if (newAccount && newAccount.status === 'connected') {
+          clearInterval(checkInterval);
+          alert(`✅ Account ${formData.email} connected successfully!`);
+          if (onAccountChange) onAccountChange();
+        }
+      }, 3000); // Check every 3 seconds
+      
+      // Stop checking after 2 minutes
+      setTimeout(() => clearInterval(checkInterval), 120000);
         if (onAccountChange) onAccountChange();
 
         // Show success message with email count
