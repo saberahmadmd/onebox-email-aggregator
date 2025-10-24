@@ -28,10 +28,13 @@ app.set('broadcast', broadcast);
 global.broadcastFunction = broadcast;
 
 app.use('/api/debug', require('./routes/debug'));
-
+app.use('/api/debug-accounts', require('./routes/debug-accounts'));//added this extra line
+app.use('/api/ai-debug', require('./routes/ai-debug'));
 app.use('/api/accounts', require('./routes/accounts'));
 app.use('/api/emails', require('./routes/emails'));
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/reply', require('./routes/reply')); //added
+app.use('/api/sync', require('./routes/sync'));   // Add this line for sync
 
 app.get('/health', (req, res) => {
   res.json({

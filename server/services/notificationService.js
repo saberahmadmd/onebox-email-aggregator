@@ -5,7 +5,7 @@ class NotificationService {
   constructor() {
     try {
       this.slack = new WebClient(process.env.SLACK_BOT_TOKEN);
-      this.slackEnabled = true;
+      this.slackEnabled = !!process.env.SLACK_BOT_TOKEN;
       console.log('✅ Slack client initialized');
     } catch (error) {
       console.error('❌ Slack initialization failed:', error);
@@ -60,26 +60,18 @@ class NotificationService {
               type: 'mrkdwn',
               text: `*Preview:*\n${(email.text || '').substring(0, 200)}...`
             }
-          },
-          {
-            type: 'actions',
-            elements: [
-              {
-                type: 'button',
-                text: {
-                  type: 'plain_text',
-                  text: 'View Email'
-                },
-                value: email.messageId,
-                action_id: 'view_email'
-              }
-            ]
           }
         ]
       });
       console.log(`✅ Slack notification sent for: ${email.from.address}`);
     } catch (error) {
-      console.error('❌ Error sending Slack notification:', error);
+      console.error('❌ Error sending Slack notification:', error.message);
+
+      // Disable Slack if channel not found or other critical errors
+      if (error.data?.error === 'channel_not_found' || error.data?.error === 'not_in_channel') {
+        console.warn('⚠️ Slack channel not found, disabling Slack notifications');
+        this.slackEnabled = false;
+      }
     }
   }
 
@@ -104,7 +96,7 @@ class NotificationService {
       });
       console.log(`✅ Webhook triggered for: ${email.messageId}`);
     } catch (error) {
-      console.error('❌ Error triggering webhook:', error);
+      console.error('❌ Error triggering webhook:', error.message);
     }
   }
 }

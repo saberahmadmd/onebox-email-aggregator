@@ -22,24 +22,35 @@ class MemoryStorageService {
   searchEmails(query = '', filters = {}, page = 1, limit = 20) {
     let filteredEmails = [...this.emails];
 
+    // Apply search query
     if (query.trim()) {
       const searchTerm = query.toLowerCase();
       filteredEmails = filteredEmails.filter(email =>
-        email.subject?.toLowerCase().includes(searchTerm) ||
-        email.text?.toLowerCase().includes(searchTerm)
+      (email.subject?.toLowerCase().includes(searchTerm) ||
+        email.text?.toLowerCase().includes(searchTerm) ||
+        email.from?.name?.toLowerCase().includes(searchTerm) ||
+        email.from?.address?.toLowerCase().includes(searchTerm))
       );
     }
 
+    // Apply account filter
     if (filters.account) {
-      filteredEmails = filteredEmails.filter(email => email.account === filters.account);
+      filteredEmails = filteredEmails.filter(email =>
+        email.account === filters.account
+      );
     }
 
+    // Apply category filter
     if (filters.category) {
-      filteredEmails = filteredEmails.filter(email => email.category === filters.category);
+      filteredEmails = filteredEmails.filter(email =>
+        email.category === filters.category
+      );
     }
 
+    // Sort by date (newest first)
     filteredEmails.sort((a, b) => new Date(b.date) - new Date(a.date));
 
+    // Pagination
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
     const paginatedEmails = filteredEmails.slice(startIndex, endIndex);
@@ -47,7 +58,8 @@ class MemoryStorageService {
     return {
       emails: paginatedEmails,
       total: filteredEmails.length,
-      page, limit,
+      page: page,
+      limit: limit,
       pages: Math.ceil(filteredEmails.length / limit)
     };
   }

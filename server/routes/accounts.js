@@ -53,7 +53,6 @@ router.post('/', async (req, res) => {
 
   } catch (error) {
     console.error('💥 Add account error:', error.message);
-    console.error('Error stack:', error.stack);
 
     // Provide user-friendly error messages
     let errorMessage = error.message;
@@ -66,6 +65,8 @@ router.post('/', async (req, res) => {
       errorMessage = 'Connection timed out. Please check your network connection and try again.';
     } else if (error.message.includes('self signed certificate')) {
       errorMessage = 'SSL certificate error. Try disabling TLS or check server certificate.';
+    } else if (error.message.includes('SMTP setup failed')) {
+      errorMessage = 'Email receiving setup successful, but sending replies may not work. You can still receive and manage emails.';
     }
 
     res.status(500).json({
@@ -73,14 +74,13 @@ router.post('/', async (req, res) => {
       error: errorMessage,
       // Include original error in development for debugging
       ...(process.env.NODE_ENV === 'development' && {
-        originalError: error.message,
-        stack: error.stack
+        originalError: error.message
       })
     });
   }
 });
 
-// Get all accounts
+// Get all accounts - FIXED: Now uses the correct method
 router.get('/', (req, res) => {
   try {
     console.log('📊 Getting all accounts');
@@ -96,7 +96,7 @@ router.get('/', (req, res) => {
     console.error('Get accounts error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to get accounts'
+      error: 'Failed to get accounts: ' + error.message
     });
   }
 });

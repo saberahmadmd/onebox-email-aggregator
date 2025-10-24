@@ -164,21 +164,35 @@ class IMAPService extends EventEmitter {
   }
 
   transformEmail(parsedEmail, accountEmail, attributes) {
+    // Ensure we have proper from address
+    const fromAddress = parsedEmail.from?.value?.[0]?.address ||
+      parsedEmail.from?.text ||
+      'unknown@unknown.com';
+
+    const fromName = parsedEmail.from?.value?.[0]?.name ||
+      parsedEmail.from?.text?.split('<')[0]?.trim() ||
+      'Unknown Sender';
+
     return {
       messageId: parsedEmail.messageId || `manual-${Date.now()}-${Math.random()}`,
       account: accountEmail,
-      from: parsedEmail.from?.value[0] || { address: '', name: '' },
+      from: {
+        address: fromAddress,
+        name: fromName
+      },
       to: parsedEmail.to?.value || [],
       subject: parsedEmail.subject || '(No Subject)',
       text: parsedEmail.text || '',
       html: parsedEmail.html || '',
       date: parsedEmail.date || new Date(),
-      category: 'uncategorized',
+      category: 'uncategorized', // Will be updated by AI service
       labels: [],
       folder: 'INBOX',
       threadId: parsedEmail.inReplyTo || parsedEmail.messageId,
-      hasAttachments: parsedEmail.attachments && parsedEmail.attachments.length > 0,
-      attachments: parsedEmail.attachments || []
+      hasAttachments: !!(parsedEmail.attachments && parsedEmail.attachments.length > 0),
+      attachments: parsedEmail.attachments || [],
+      // Add unique ID for frontend
+      id: `email-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     };
   }
 

@@ -11,7 +11,7 @@
   "description": "",
   "dependencies": {
     "@elastic/elasticsearch": "^9.1.1",
-    "@google/generative-ai": "^0.24.1",
+    "@google/genai": "^1.26.0",
     "@slack/web-api": "^7.11.0",
     "axios": "^1.12.2",
     "cors": "^2.8.5",
@@ -22,6 +22,7 @@
     "mongoose": "^8.19.1",
     "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
+    "nodemailer": "^7.0.9",
     "openai": "^6.5.0",
     "uuid": "^13.0.0",
     "ws": "^8.18.3"

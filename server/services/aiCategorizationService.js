@@ -1,4 +1,4 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require("@google/genai");
 
 class AICategorizationService {
   constructor() {
@@ -10,14 +10,48 @@ class AICategorizationService {
       'Out of Office'
     ];
 
-    // Initialize Gemini
+    this.isEnabled = false;
+    this.model = "gemini-2.0-flash-exp"; // Use the working model
+
+    this.initializeGenAI();
+  }
+
+  initializeGenAI() {
     try {
-      this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      this.model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
-      console.log('✅ Google Gemini initialized successfully');
-      this.isEnabled = true;
+      const apiKey = process.env.GEMINI_API_KEY;
+
+      if (!apiKey || apiKey.includes('your_gemini')) {
+        console.log('⚠️ Gemini API key not set, using default categorization');
+        this.isEnabled = false;
+        return;
+      }
+
+      console.log('🔧 Creating Google GenAI instance for categorization...');
+      this.ai = new GoogleGenAI({ apiKey: apiKey });
+
+      // Test the service with the working model
+      this.testAI();
+
     } catch (error) {
-      console.error('❌ Failed to initialize Gemini:', error);
+      console.error('❌ Failed to initialize Google GenAI for categorization:', error);
+      this.isEnabled = false;
+    }
+  }
+
+  async testAI() {
+    try {
+      console.log('🧪 Testing categorization AI...');
+      const response = await this.ai.models.generateContent({
+        model: this.model,
+        contents: "Say 'Test'"
+      });
+
+      console.log('✅ Categorization AI working:', response.text);
+      this.isEnabled = true;
+      console.log(`✅ Categorization service initialized with model: ${this.model}`);
+
+    } catch (error) {
+      console.error('❌ Categorization AI test failed:', error.message);
       this.isEnabled = false;
     }
   }
@@ -30,9 +64,12 @@ class AICategorizationService {
     try {
       const prompt = this.buildCategorizationPrompt(email);
 
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const category = this.parseCategory(response.text());
+      const response = await this.ai.models.generateContent({
+        model: this.model,
+        contents: prompt
+      });
+
+      const category = this.parseCategory(response.text);
 
       console.log(`🤖 Gemini categorization: ${category}`);
       return category || 'uncategorized';
@@ -99,6 +136,14 @@ Category:`.trim();
     }
 
     return 'uncategorized';
+  }
+
+  getStatus() {
+    return {
+      enabled: this.isEnabled,
+      model: this.model,
+      sdk: 'Google GenAI (new)'
+    };
   }
 }
 
