@@ -58,17 +58,22 @@ api.interceptors.response.use(
 export const websocketService = {
   connect: (onMessage, onError, onClose) => {
     const wsUrl = process.env.REACT_APP_WS_URL || 'ws://localhost:3001';
+    
+    // Use wss:// for production
+    const secureWsUrl = wsUrl.replace('http://', 'wss://').replace('https://', 'wss://');
 
-    // Close existing connection if any
     if (window.__currentWebSocket) {
       window.__currentWebSocket.close();
     }
 
-    const ws = new WebSocket(wsUrl);
+    const ws = new WebSocket(secureWsUrl);
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
 
     ws.onopen = () => {
       console.log('✅ WebSocket connected');
-      window.__currentWebSocket = ws; // Store reference
+      window.__currentWebSocket = ws;
+      reconnectAttempts = 0;
     };
 
     ws.onmessage = (event) => {
@@ -92,12 +97,27 @@ export const websocketService = {
       }
       if (onClose) onClose(event);
 
-      // Auto-reconnect after 5 seconds
-      setTimeout(() => {
-        console.log('🔄 Attempting WebSocket reconnection...');
-        websocketService.connect(onMessage, onError, onClose);
-      }, 5000);
+      // Auto-reconnect with exponential backoff
+      if (reconnectAttempts < maxReconnectAttempts) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+        reconnectAttempts++;
+        console.log(`🔄 Reconnecting in ${delay/1000}s... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
+        setTimeout(() => {
+          websocketService.connect(onMessage, onError, onClose);
+        }, delay);
+      }
     };
+
+    // Heartbeat to keep connection alive
+    const heartbeat = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 30000);
+
+    ws.addEventListener('close', () => {
+      clearInterval(heartbeat);
+    });
 
     return ws;
   },
