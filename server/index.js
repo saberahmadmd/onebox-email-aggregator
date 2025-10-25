@@ -41,7 +41,7 @@ app.use('/api/accounts', require('./routes/accounts'));
 app.use('/api/emails', require('./routes/emails'));
 app.use('/api/ai', require('./routes/ai'));
 // Added this with your other routes
-app.use('/api/ai-status', require('./routes/ai-status'));
+//app.use('/api/ai-status', require('./routes/ai-status'));
 app.use('/api/reply', require('./routes/reply')); //added
 app.use('/api/sync', require('./routes/sync'));   // Add this line for sync
 
