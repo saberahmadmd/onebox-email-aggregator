@@ -11,7 +11,7 @@ const wss = new WebSocket.Server({ server });
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://onebox-email-aggregator-mauve.vercel.app/', // ADD YOUR VERCEL URL
+    'https://onebox-email-aggregator-mauve.vercel.app/', // Added YOUR VERCEL URL
     /\.vercel\.app$/ // Allow all Vercel preview deployments
   ],
   credentials: true
@@ -40,6 +40,8 @@ app.use('/api/ai-debug', require('./routes/ai-debug'));
 app.use('/api/accounts', require('./routes/accounts'));
 app.use('/api/emails', require('./routes/emails'));
 app.use('/api/ai', require('./routes/ai'));
+// Added this with your other routes
+app.use('/api/ai-status', require('./routes/ai-status'));
 app.use('/api/reply', require('./routes/reply')); //added
 app.use('/api/sync', require('./routes/sync'));   // Add this line for sync
 
