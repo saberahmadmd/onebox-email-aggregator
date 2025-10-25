@@ -4,7 +4,6 @@ class AIReplyService {
   constructor() {
     this.isEnabled = false;
     this.initialized = false;
-    this.quotaExceeded = false;
 
     console.log('🔧 Initializing AI Reply Service with Google GenAI...');
 
@@ -57,31 +56,22 @@ class AIReplyService {
 
     } catch (error) {
       console.error('❌ AI Test Failed:', error.message);
-      
-      // Check if it's a quota error
-      if (this.isQuotaError(error)) {
-        console.log('⚠️ Gemini API quota exceeded. Using fallback replies.');
-        this.quotaExceeded = true;
-        this.isEnabled = false;
-      } else {
-        this.isEnabled = false;
-      }
+      this.isEnabled = false;
     }
   }
 
+  // ... rest of your methods remain the same
   async generateSuggestedReplies(email, contextType = "job_application") {
     console.log('🤖 generateSuggestedReplies called with:', {
       hasEmail: !!email,
       contextType,
       subject: email?.subject,
       aiEnabled: this.isEnabled,
-      quotaExceeded: this.quotaExceeded,
       model: this.successfulModel
     });
 
-    // If AI is disabled or quota exceeded, use fallback
-    if (!this.isEnabled || this.quotaExceeded) {
-      console.log('⚠️ AI is disabled or quota exceeded, returning fallback replies');
+    if (!this.isEnabled) {
+      console.log('⚠️ AI is disabled, returning fallback replies');
       return this.getFallbackReplies();
     }
 
@@ -117,25 +107,8 @@ class AIReplyService {
 
     } catch (error) {
       console.error('❌ Error generating AI replies:', error.message);
-      
-      // If quota error, disable AI for future requests
-      if (this.isQuotaError(error)) {
-        this.quotaExceeded = true;
-        this.isEnabled = false;
-        console.log('⚠️ Gemini API quota exceeded. Disabling AI reply generation.');
-      }
-      
       return this.getFallbackReplies();
     }
-  }
-
-  isQuotaError(error) {
-    return error.message && (
-      error.message.includes('429') || 
-      error.message.includes('quota') || 
-      error.message.includes('RESOURCE_EXHAUSTED') ||
-      error.message.includes('exceeded your current quota')
-    );
   }
 
   buildReplyPrompt(email, context) {
@@ -234,7 +207,6 @@ IMPORTANT: Respond with ONLY the JSON array, no other text.
     return {
       initialized: this.initialized,
       enabled: this.isEnabled,
-      quotaExceeded: this.quotaExceeded,
       hasApiKey: !!process.env.GEMINI_API_KEY && !process.env.GEMINI_API_KEY.includes('your_gemini'),
       model: this.successfulModel || 'none',
       sdk: 'Google GenAI (new)'
