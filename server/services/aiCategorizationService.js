@@ -11,7 +11,8 @@ class AICategorizationService {
     ];
 
     this.isEnabled = false;
-    this.model = "gemini-2.0-flash-exp"; // Use the working model
+    this.quotaExceeded = false;
+    this.model = "gemini-2.0-flash-exp";
 
     this.initializeGenAI();
   }
@@ -52,12 +53,21 @@ class AICategorizationService {
 
     } catch (error) {
       console.error('❌ Categorization AI test failed:', error.message);
-      this.isEnabled = false;
+      
+      // Check if it's a quota error
+      if (this.isQuotaError(error)) {
+        console.log('⚠️ Gemini API quota exceeded. Using fallback categorization.');
+        this.quotaExceeded = true;
+        this.isEnabled = false;
+      } else {
+        this.isEnabled = false;
+      }
     }
   }
 
   async categorizeEmail(email) {
-    if (!this.isEnabled) {
+    // If AI is disabled or quota exceeded, use default categorization
+    if (!this.isEnabled || this.quotaExceeded) {
       return this.getDefaultCategory(email);
     }
 
@@ -75,8 +85,25 @@ class AICategorizationService {
       return category || 'uncategorized';
     } catch (error) {
       console.error('❌ Error in Gemini categorization:', error);
+      
+      // If quota error, disable AI for future requests
+      if (this.isQuotaError(error)) {
+        this.quotaExceeded = true;
+        this.isEnabled = false;
+        console.log('⚠️ Gemini API quota exceeded. Disabling AI categorization.');
+      }
+      
       return this.getDefaultCategory(email);
     }
+  }
+
+  isQuotaError(error) {
+    return error.message && (
+      error.message.includes('429') || 
+      error.message.includes('quota') || 
+      error.message.includes('RESOURCE_EXHAUSTED') ||
+      error.message.includes('exceeded your current quota')
+    );
   }
 
   buildCategorizationPrompt(email) {
@@ -141,6 +168,7 @@ Category:`.trim();
   getStatus() {
     return {
       enabled: this.isEnabled,
+      quotaExceeded: this.quotaExceeded,
       model: this.model,
       sdk: 'Google GenAI (new)'
     };
